@@ -6,6 +6,9 @@ use std::{fs, io};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
+use httpcodec::{BodyDecoder, ResponseDecoder};
+use bytecodec::bytes::RemainingBytesDecoder;
+use bytecodec::io::IoDecodeExt;
 use reqwest::header::USER_AGENT;
 use serde::Deserialize;
 use serde_json::Value;
@@ -19,7 +22,7 @@ pub const HOST_PORT:&str = "1313";
 
 
 fn main() {
-    let listener = TcpListener::bind(HOST_IP.to_owned()+HOST_PORT).unwrap();
+    let listener = TcpListener::bind(HOST_IP.to_owned()+":"+HOST_PORT).unwrap();
     let pool = ThreadPool::new(THREAD_POOL_SIZE);
 
     for stream in listener.incoming() {
@@ -43,26 +46,19 @@ fn main() {
     }
 }
 
-pub(crate) fn extract_uri(http_request: &str) -> &str {
-    let line = http_request.lines().next().unwrap();
-    // return uri (remove GET prefix and HTTP/1.1 suffix)
-    line.strip_prefix("GET")
-        .unwrap()
-        .strip_suffix("HTTP/1.1")
-        .unwrap()
-        .trim()
-}
-
 fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let buf_reader = BufReader::new(&stream);
-    let request_line = buf_reader.lines().next().unwrap()?;
+    let lines: Vec<_> = buf_reader.lines().collect::<Result<_, _>>().unwrap();
 
-    let uri = extract_uri(request_line.as_str());
-    let mut uri_words = uri.split("/").collect::<Vec<&str>>();
-    uri_words.remove(0);
-    let client_addr = stream.local_addr()?.ip().to_string();
 
-    stream.write(header.as_bytes())?;
-    stream.write(contents.as_slice())?;
+    println!("{:?}",lines);
+    let mut decoder =
+        ResponseDecoder::<BodyDecoder<RemainingBytesDecoder>>::default();
+    //let response = decoder.decode_exact(buf_reader).unwrap();
+
+    //println!("{}",request_str);
+
+    //stream.write(header.as_bytes())?;
+    //stream.write(contents.as_slice())?;
     stream.flush()
 }
