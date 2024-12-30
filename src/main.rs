@@ -50,15 +50,11 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let buf_reader = BufReader::new(&stream);
     let lines: Vec<_> = buf_reader.lines().collect::<Result<_, _>>().unwrap();
 
+    let header = &lines[0];
+    let host = &lines[1].replace("Host: ","");
 
-    println!("{:?}",lines);
-    let mut decoder =
-        ResponseDecoder::<BodyDecoder<RemainingBytesDecoder>>::default();
-    //let response = decoder.decode_exact(buf_reader).unwrap();
+    println!("{} {}", header, host);
 
-    //println!("{}",request_str);
-
-    //stream.write(header.as_bytes())?;
-    //stream.write(contents.as_slice())?;
+    stream.write("dsdf".as_bytes())?;
     stream.flush()
 }
