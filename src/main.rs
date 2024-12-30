@@ -55,6 +55,24 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
 
     println!("{} {}", header, host);
 
-    stream.write("dsdf".as_bytes())?;
+    let response = respond(header.to_string(),host.to_string());
+
+    match response {
+        Ok(content) => {
+            stream.write("HTTP/1.1 200 OK".as_bytes())?;
+            stream.write(content.as_bytes())?;
+        }
+        Err(err) => {
+            stream.write("HTTP/1.1 400 Bad Request".as_bytes())?;
+            stream.write(err.as_bytes())?;
+        }
+    }
+
     stream.flush()
+}
+
+fn respond(req_header:String,host:String) -> Result<String,String> {
+    if !req_header.starts_with("GET"){
+        return Err("Not a GET request".to_string());
+    }
 }
