@@ -1,0 +1,5 @@
+### GET request to example server
+GET 127.0.0.1:1313/index.html
+Host: html-test.quantumadmin.esporterz.com
+
+###

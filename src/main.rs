@@ -38,8 +38,8 @@ fn main() {
         pool.execute( || {
             match handle_connection(stream){
                 Ok(_) => {}
-                Err(_) => {
-                    println!("error occurred when handling connection");
+                Err(err) => {
+                    println!("{}", err);
                 }
             }
         });
@@ -58,10 +58,10 @@ pub(crate) fn extract_uri(http_request: &str) -> &str {
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let buf_reader = BufReader::new(&stream);
-    let lines: Vec<_> = buf_reader.lines().collect::<Result<_, _>>().unwrap();
+    let mut lines = buf_reader.lines();
 
-    let header = &lines[0];
-    let host = &lines[1].replace("Host: ","");
+    let header = lines.next().unwrap()?;
+    let host = lines.next().unwrap()?.replace("Host: ","");
 
     let uri = extract_uri(header.as_str());
 
@@ -74,14 +74,14 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
             println!("{}", content);
             stream.write("HTTP/1.1 200 OK".as_bytes())?;
             stream.write(content.as_bytes())?;
+            stream.flush()
         }
         Err(err) => {
             stream.write("HTTP/1.1 400 Bad Request".as_bytes())?;
             stream.write(err.as_bytes())?;
+            stream.flush()
         }
     }
-
-    stream.flush()
 }
 
 fn respond(req_header:String,host:String,uri:String) -> Result<String,String> {
