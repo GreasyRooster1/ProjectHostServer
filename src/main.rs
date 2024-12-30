@@ -56,6 +56,19 @@ pub(crate) fn extract_uri(http_request: &str) -> &str {
         .trim()
 }
 
+pub(crate) fn get_mime_type(path:&str)->String{
+    match path.split(".").last().unwrap() {
+        "html"=>{"text/html".to_string()}
+        "css"=>{"text/css".to_string()}
+        "js"=>{"text/javascript".to_string()}
+        "mjs"=>{"text/javascript".to_string()}
+        "ico"=>{"image/vnd.microsoft.icon".to_string()}
+        "png"=>{"image/png".to_string()}
+        "jpg"=>{"image/jpeg".to_string()}
+        _ => {"".to_string()}
+    }
+}
+
 fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let buf_reader = BufReader::new(&stream);
     let mut lines = buf_reader.lines();
@@ -69,19 +82,24 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
 
     let response = respond(header.to_string(),host.to_string(),uri.to_string());
 
-    match response {
+    let (status_line,content) = match response {
         Ok(content) => {
-            println!("{}", content);
-            stream.write("HTTP/1.1 200 OK".as_bytes())?;
-            stream.write(content.as_bytes())?;
-            stream.flush()
+            ("HTTP/1.1 200 OK",content)
         }
         Err(err) => {
-            stream.write("HTTP/1.1 400 Bad Request".as_bytes())?;
-            stream.write(err.as_bytes())?;
-            stream.flush()
+            ("HTTP/1.1 400 Bad Request",err)
         }
-    }
+    };
+
+    let binding = get_mime_type(uri);
+    let mime = binding.as_str();
+    let length = content.len();
+
+    let header = format!("{status_line}\r\nContent-Type: {mime}\r\nContent-Length: {length}\r\n\r\n");
+
+    stream.write(header.as_bytes())?;
+    stream.write(content.as_bytes())?;
+    stream.flush()
 }
 
 fn respond(req_header:String,host:String,uri:String) -> Result<String,String> {
