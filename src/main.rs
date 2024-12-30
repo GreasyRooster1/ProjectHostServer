@@ -78,8 +78,6 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
 
     let uri = extract_uri(header.as_str());
 
-    println!("{} {}", header, host);
-
     let response = respond(header.to_string(),host.to_string(),uri.to_string());
 
     let (status_line,content) = match response {
@@ -112,8 +110,6 @@ fn respond(req_header:String,host:String,uri:String) -> Result<String,String> {
     }
     let path = format!("data/{1}/{0}{uri}",host_words[0],host_words[1]);
     let contents = fs::read_to_string(path.clone());
-
-    println!("{:#?} {}",host_words,path);
     return match contents {
         Ok(content) => {
             Ok(content)
