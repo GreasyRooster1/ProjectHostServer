@@ -46,6 +46,16 @@ fn main() {
     }
 }
 
+pub(crate) fn extract_uri(http_request: &str) -> &str {
+    let line = http_request.lines().next().unwrap();
+    // return uri (remove GET prefix and HTTP/1.1 suffix)
+    line.strip_prefix("GET")
+        .unwrap()
+        .strip_suffix("HTTP/1.1")
+        .unwrap()
+        .trim()
+}
+
 fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let buf_reader = BufReader::new(&stream);
     let lines: Vec<_> = buf_reader.lines().collect::<Result<_, _>>().unwrap();
@@ -53,12 +63,15 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let header = &lines[0];
     let host = &lines[1].replace("Host: ","");
 
+    let uri = extract_uri(header.as_str());
+
     println!("{} {}", header, host);
 
-    let response = respond(header.to_string(),host.to_string());
+    let response = respond(header.to_string(),host.to_string(),uri.to_string());
 
     match response {
         Ok(content) => {
+            println!("{}", content);
             stream.write("HTTP/1.1 200 OK".as_bytes())?;
             stream.write(content.as_bytes())?;
         }
@@ -71,8 +84,24 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     stream.flush()
 }
 
-fn respond(req_header:String,host:String) -> Result<String,String> {
+fn respond(req_header:String,host:String,uri:String) -> Result<String,String> {
     if !req_header.starts_with("GET"){
         return Err("Not a GET request".to_string());
+    }
+    let host_words:Vec<&str> = host.split(".").collect();
+    if host_words.len()!=4 {
+        return Err("Malformed host".to_string())
+    }
+    let path = format!("data/{1}/{0}{uri}",host_words[0],host_words[1]);
+    let contents = fs::read_to_string(path.clone());
+
+    println!("{:#?} {}",host_words,path);
+    return match contents {
+        Ok(content) => {
+            Ok(content)
+        }
+        Err(error) => {
+            Err(format!("File read error: {error}"))
+        }
     }
 }
