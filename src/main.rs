@@ -1,3 +1,68 @@
+mod workers;
+
+use std::collections::HashMap;
+use base64::prelude::*;
+use std::{fs, io};
+use std::io::{BufRead, BufReader, Write};
+use std::net::{TcpListener, TcpStream};
+use std::sync::Arc;
+use reqwest::header::USER_AGENT;
+use serde::Deserialize;
+use serde_json::Value;
+use crate::workers::ThreadPool;
+
+pub const THREAD_POOL_SIZE:usize = 64;
+pub const NOT_FOUND_PAGE:&str = include_str!("../404.html");
+
+pub const HOST_IP:&str = "127.0.0.1";
+pub const HOST_PORT:&str = "1313";
+
+
 fn main() {
-    println!("Hello, world!");
+    let listener = TcpListener::bind(HOST_IP.to_owned()+HOST_PORT).unwrap();
+    let pool = ThreadPool::new(THREAD_POOL_SIZE);
+
+    for stream in listener.incoming() {
+        let stream = match stream {
+            Ok(_) => {
+                stream.unwrap()
+            }
+            Err(_) => {
+                println!("error occurred when unwrapping stream");
+                continue;
+            }
+        };
+        pool.execute( || {
+            match handle_connection(stream){
+                Ok(_) => {}
+                Err(_) => {
+                    println!("error occurred when handling connection");
+                }
+            }
+        });
+    }
+}
+
+pub(crate) fn extract_uri(http_request: &str) -> &str {
+    let line = http_request.lines().next().unwrap();
+    // return uri (remove GET prefix and HTTP/1.1 suffix)
+    line.strip_prefix("GET")
+        .unwrap()
+        .strip_suffix("HTTP/1.1")
+        .unwrap()
+        .trim()
+}
+
+fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
+    let buf_reader = BufReader::new(&stream);
+    let request_line = buf_reader.lines().next().unwrap()?;
+
+    let uri = extract_uri(request_line.as_str());
+    let mut uri_words = uri.split("/").collect::<Vec<&str>>();
+    uri_words.remove(0);
+    let client_addr = stream.local_addr()?.ip().to_string();
+
+    stream.write(header.as_bytes())?;
+    stream.write(contents.as_slice())?;
+    stream.flush()
 }
