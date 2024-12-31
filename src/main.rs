@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use base64::prelude::*;
 use std::{fs, io};
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Error, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use httpcodec::{BodyDecoder, ResponseDecoder};
@@ -89,6 +89,17 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let header = http_request.get(0).unwrap().to_string();
     let host_line:String = http_request.get(1).unwrap().to_string();
     let host = host_line.replace("Host: ","");
+    let mut content_len = 0;
+    for line in &http_request {
+        if line.starts_with("Content-Length: "){
+            content_len = line.strip_prefix("Content-Length: ").unwrap().parse::<i32>().unwrap();;
+        }
+    }
+    if(content_len==0){
+        stream.flush()?;
+        return Err(Error::last_os_error());
+    }
+    let bytes =
 
     println!("{:#?}",http_request);
 
