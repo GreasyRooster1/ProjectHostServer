@@ -3,6 +3,7 @@ mod workers;
 use std::collections::HashMap;
 use base64::prelude::*;
 use std::{fs, io};
+use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
@@ -76,9 +77,21 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let header = lines.next().unwrap()?;
     let host = lines.next().unwrap()?.replace("Host: ","");
 
+    loop {
+        let line=lines.next().unwrap()?;
+        if line.starts_with("\r\n"){
+            break
+        }
+    }
+    let body_lines:Vec<String> = lines
+        .map(|result| result.unwrap_or_else(|_| return "".to_string()))
+        .take_while(|line| !line.is_empty() )
+        .collect();
+    let body = body_lines.join("\n");
+
     let uri = extract_uri(header.as_str());
 
-    let response = respond(header.to_string(),host.to_string(),uri.to_string());
+    let response = respond(header.to_string(),host.to_string(),uri.to_string(),body);
 
     let (status_line,content) = match response {
         Ok(content) => {
@@ -100,18 +113,37 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     stream.flush()
 }
 
-fn respond(req_header:String,host:String,uri:String) -> Result<String,String>{
+fn respond(req_header:String,host:String,uri:String,body:String) -> Result<String,String>{
     if req_header.starts_with("GET"){
        return respond_get(req_header,host,uri);
     }
     if req_header.starts_with("POST"){
-        return respond_post(req_header,host,uri);
+        return respond_post(req_header,host,uri,body);
     }
     return Err("Incorrect protocol".to_string());
 }
 
-fn respond_post(req_header:String,host:String,uri:String)-> Result<String,String> {
-    todo!();
+fn respond_post(req_header:String,host:String,uri:String,body:String)-> Result<String,String> {
+    let host_words:Vec<&str> = host.split(".").collect();
+    if host_words.len()!=4 {
+        return Err("Malformed host".to_string())
+    }
+    let path = get_path_from_host(host,uri);
+    return match File::open(path) {
+        Ok(mut file) => {
+            match file.write_all(body.as_bytes()) {
+                Ok(_) => {
+                    Ok("received file".to_string())
+                }
+                Err(err) => {
+                    Err(format!("{}", err))
+                }
+            }
+        }
+        Err(err) => {
+            Err(format!("{}", err))
+        }
+    }
 }
 
 fn respond_get(req_header:String,host:String,uri:String) -> Result<String,String> {
