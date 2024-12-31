@@ -86,6 +86,7 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let mut body = "".to_string();
     for read_line in lines {
         let line = read_line.unwrap();
+        if(line==)
         body = format!("{body}\n{line}");
     }
     println!("{:#?}",body);
