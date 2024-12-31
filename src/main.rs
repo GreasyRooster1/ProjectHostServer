@@ -120,7 +120,7 @@ fn respond_get(req_header:String,host:String,uri:String) -> Result<String,String
     if host_words.len()!=4 {
         return Err("Malformed host".to_string())
     }
-    let path = format!("data/{1}/{0}{uri}",host_words[0],host_words[1]);
+    let path = get_path_from_host(&host);
     let contents = fs::read_to_string(path.clone());
     return match contents {
         Ok(content) => {
@@ -130,4 +130,9 @@ fn respond_get(req_header:String,host:String,uri:String) -> Result<String,String
             Err(format!("File read error: {error}"))
         }
     }
+}
+
+fn get_path_from_host(host:String){
+    let host_words:Vec<&str> = host.split(".").collect();
+    format!("data/{1}/{0}{uri}",host_words[0],host_words[1])
 }
