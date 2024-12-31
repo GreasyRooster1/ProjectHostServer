@@ -100,10 +100,22 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     stream.flush()
 }
 
-fn respond(req_header:String,host:String,uri:String) -> Result<String,String> {
-    if !req_header.starts_with("GET"){
-        return Err("Not a GET request".to_string());
+fn respond(req_header:String,host:String,uri:String) -> Result<String,String>{
+    if req_header.starts_with("GET"){
+       return respond_get(req_header,host,uri);
     }
+    if req_header.starts_with("POST"){
+        return respond_post(req_header,host,uri);
+    }
+    return Err("Incorrect protocol".to_string());
+}
+
+fn respond_post(req_header:String,host:String,uri:String)-> Result<String,String> {
+    todo!();
+}
+
+fn respond_get(req_header:String,host:String,uri:String) -> Result<String,String> {
+
     let host_words:Vec<&str> = host.split(".").collect();
     if host_words.len()!=4 {
         return Err("Malformed host".to_string())
