@@ -85,13 +85,10 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
         .map(|result| result.unwrap())
         .take_while(|line| !line.is_empty())
         .collect();
-    let string_req = http_request.join("\r\n");
 
     let header = http_request.get(0).unwrap().to_string();
     let host_line:String = http_request.get(1).unwrap().to_string();
     let host = host_line.replace("Host: ","");
-
-    let chunks: Vec<&str>=string_req.split("\r\n\r\n").collect();
 
     println!("{:#?}",http_request);
 
