@@ -47,14 +47,14 @@ fn main() {
     }
 }
 
-pub(crate) fn extract_uri(http_request: &str) -> &str {
+pub(crate) fn extract_uri(http_request: String,protocol:String) -> String {
     let line = http_request.lines().next().unwrap();
     // return uri (remove GET prefix and HTTP/1.1 suffix)
-    line.strip_prefix("GET")
+    line.strip_prefix(protocol.as_str())
         .unwrap()
         .strip_suffix("HTTP/1.1")
         .unwrap()
-        .trim()
+        .trim().to_string()
 }
 
 pub(crate) fn get_mime_type(path:&str)->String{
@@ -72,28 +72,24 @@ pub(crate) fn get_mime_type(path:&str)->String{
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let mut buf_reader = BufReader::new(&stream);
-    let mut lines = buf_reader.lines();
+    let http_request: Vec<_> = buf_reader
+        .lines()
+        .map(|result| result.unwrap())
+        .take_while(|line| !line.is_empty())
+        .collect();
+    let string_req = http_request.join("\r\n");
 
-    let header = lines.next().unwrap()?;
-    let host = lines.next().unwrap()?.replace("Host: ","");
+    let header = http_request.get(0).unwrap().to_string();
+    let protocol = header.split(" ");
+    let host_line:String = http_request.get(1).unwrap().to_string();
+    let host = host_line.replace("Host: ","");
 
-    loop {
-        let line=lines.next().unwrap()?;
-        if line.is_empty(){
-            break
-        }
-    }
-    let mut body = "".to_string();
-    for read_line in lines {
-        let line = read_line.unwrap();
-        if(line==)
-        body = format!("{body}\n{line}");
-    }
-    println!("{:#?}",body);
+    let chunks=string_req.split("\r\n");
+    println!("{:#?}",http_request);
 
-    let uri = extract_uri(header.as_str());
+    let uri = extract_uri(header.clone(),protocol[0]);
 
-    let response = respond(header.to_string(),host.to_string(),uri.to_string(),"str".to_string());
+    let response = respond(header.to_string(),host.to_string(),uri,"str".to_string());
 
     let (status_line,content) = match response {
         Ok(content) => {
