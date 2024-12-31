@@ -91,8 +91,9 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let host_line:String = http_request.get(1).unwrap().to_string();
     let host = host_line.replace("Host: ","");
 
-    let chunks: Vec<&str>=string_req.split("\r\n").collect();
-    println!("{:#?}",chunks);
+    let chunks: Vec<&str>=string_req.split("\r\n\r\n").collect();
+
+    println!("{:#?}",http_request);
 
     let uri = extract_uri(header.as_str().parse().unwrap());
 
@@ -135,7 +136,7 @@ fn respond_post(req_header:String,host:String,uri:String,body:String)-> Result<S
     }
     let path = get_path_from_host(host,uri);
     println!("{}", path);
-    return match File::open(path) {
+    return match File::create(path) {
         Ok(mut file) => {
             match file.write_all(body.as_bytes()) {
                 Ok(_) => {
@@ -172,5 +173,5 @@ fn respond_get(req_header:String,host:String,uri:String) -> Result<String,String
 
 fn get_path_from_host(host:String,uri:String)->String{
     let host_words:Vec<&str> = host.split(".").collect();
-    format!("data/{1}/{0}{uri}",host_words[0],host_words[1])
+    format!("./data/{1}/{0}{uri}",host_words[0],host_words[1])
 }
