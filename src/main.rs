@@ -47,14 +47,22 @@ fn main() {
     }
 }
 
-pub(crate) fn extract_uri(http_request: String,protocol:String) -> String {
+pub(crate) fn extract_uri(http_request: String) -> String {
     let line = http_request.lines().next().unwrap();
     // return uri (remove GET prefix and HTTP/1.1 suffix)
-    line.strip_prefix(protocol.as_str())
-        .unwrap()
-        .strip_suffix("HTTP/1.1")
-        .unwrap()
-        .trim().to_string()
+    if(line.starts_with("GET")) {
+        line.strip_prefix("GET")
+            .unwrap()
+            .strip_suffix("HTTP/1.1")
+            .unwrap()
+            .trim().to_string()
+    }else{
+        line.strip_prefix("POST")
+            .unwrap()
+            .strip_suffix("HTTP/1.1")
+            .unwrap()
+            .trim().to_string()
+    }
 }
 
 pub(crate) fn get_mime_type(path:&str)->String{
@@ -80,16 +88,15 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let string_req = http_request.join("\r\n");
 
     let header = http_request.get(0).unwrap().to_string();
-    let protocol = header.split(" ");
     let host_line:String = http_request.get(1).unwrap().to_string();
     let host = host_line.replace("Host: ","");
 
-    let chunks=string_req.split("\r\n");
-    println!("{:#?}",http_request);
+    let chunks: Vec<&str>=string_req.split("\r\n").collect();
+    println!("{:#?}",chunks);
 
-    let uri = extract_uri(header.clone(),protocol[0]);
+    let uri = extract_uri(header.as_str().parse().unwrap());
 
-    let response = respond(header.to_string(),host.to_string(),uri,"str".to_string());
+    let response = respond(header.to_string(),host.to_string(),uri.to_string(),"str".to_string());
 
     let (status_line,content) = match response {
         Ok(content) => {
@@ -100,7 +107,7 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
         }
     };
 
-    let binding = get_mime_type(uri);
+    let binding = get_mime_type(&uri);
     let mime = binding.as_str();
     let length = content.len();
 
@@ -127,6 +134,7 @@ fn respond_post(req_header:String,host:String,uri:String,body:String)-> Result<S
         return Err("Malformed host".to_string())
     }
     let path = get_path_from_host(host,uri);
+    println!("{}", path);
     return match File::open(path) {
         Ok(mut file) => {
             match file.write_all(body.as_bytes()) {
@@ -134,12 +142,12 @@ fn respond_post(req_header:String,host:String,uri:String,body:String)-> Result<S
                     Ok("received file".to_string())
                 }
                 Err(err) => {
-                    Err(format!("{}", err))
+                    Err(format!("cant write: {}", err))
                 }
             }
         }
         Err(err) => {
-            Err(format!("{}", err))
+            Err(format!("cant open: {}", err))
         }
     }
 }
