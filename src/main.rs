@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use base64::prelude::*;
 use std::{fs, io};
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use httpcodec::{BodyDecoder, ResponseDecoder};
@@ -71,7 +71,7 @@ pub(crate) fn get_mime_type(path:&str)->String{
 }
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
-    let buf_reader = BufReader::new(&stream);
+    let mut buf_reader = BufReader::new(&stream);
     let mut lines = buf_reader.lines();
 
     let header = lines.next().unwrap()?;
@@ -79,19 +79,20 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
 
     loop {
         let line=lines.next().unwrap()?;
-        if line.starts_with("\r\n"){
+        if line.is_empty(){
             break
         }
     }
-    let body_lines:Vec<String> = lines
-        .map(|result| result.unwrap_or_else(|_| return "".to_string()))
-        .take_while(|line| !line.is_empty() )
-        .collect();
-    let body = body_lines.join("\n");
+    let mut body = "".to_string();
+    for read_line in lines {
+        let line = read_line.unwrap();
+        body = format!("{body}\n{line}");
+    }
+    println!("{:#?}",body);
 
     let uri = extract_uri(header.as_str());
 
-    let response = respond(header.to_string(),host.to_string(),uri.to_string(),body);
+    let response = respond(header.to_string(),host.to_string(),uri.to_string(),"str".to_string());
 
     let (status_line,content) = match response {
         Ok(content) => {
