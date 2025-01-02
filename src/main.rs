@@ -41,9 +41,22 @@ fn main() {
                 let host = request.header("Host").unwrap();
                 let path = get_path_from_host(host.to_string(),uri);
                 println!("Requested path: {:?}", path);
-                let contents = File::open(path).unwrap();
+                let contents = File::open(&path).unwrap();
 
                 rouille::Response::from_file(get_mime_type(path.as_str()),contents)
+            },
+
+            (PUT) (/{uri: String}) => {
+                let host = request.header("Host").unwrap();
+                let path = get_path_from_host(host.to_string(),uri);
+                let mut buffer = String::new();
+                request.data().unwrap().read_to_string(&mut buffer).expect("couldnt read body");
+                let mut file = File::create(&path).unwrap();
+                file.write_all(buffer.as_bytes()).unwrap();
+
+                println!("Wrote to path: {:?}", path);
+
+                rouille::Response::empty_204()
             },
             _ => rouille::Response::empty_404()
         )
@@ -65,161 +78,6 @@ pub(crate) fn get_mime_type(path:&str)->String{
 
 fn get_path_from_host(host:String,uri:String)->String{
     let host_words:Vec<&str> = host.split(".").collect();
-    format!("./data/{1}/{0}{uri}",host_words[0],host_words[1])
+    format!("./data/{1}/{0}/{uri}",host_words[0],host_words[1])
 }
 
-// fn main() {
-//     let listener = TcpListener::bind(HOST_IP.to_owned()+":"+HOST_PORT).unwrap();
-//     let pool = ThreadPool::new(THREAD_POOL_SIZE);
-//
-//     for stream in listener.incoming() {
-//         let stream = match stream {
-//             Ok(_) => {
-//                 stream.unwrap()
-//             }
-//             Err(_) => {
-//                 println!("error occurred when unwrapping stream");
-//                 continue;
-//             }
-//         };
-//         pool.execute( || {
-//             match handle_connection(stream){
-//                 Ok(_) => {}
-//                 Err(err) => {
-//                     println!("{}", err);
-//                 }
-//             }
-//         });
-//     }
-// }
-//
-// pub(crate) fn extract_uri(http_request: String) -> String {
-//     let line = http_request.lines().next().unwrap();
-//     // return uri (remove GET prefix and HTTP/1.1 suffix)
-//     if(line.starts_with("GET")) {
-//         line.strip_prefix("GET")
-//             .unwrap()
-//             .strip_suffix("HTTP/1.1")
-//             .unwrap()
-//             .trim().to_string()
-//     }else{
-//         line.strip_prefix("POST")
-//             .unwrap()
-//             .strip_suffix("HTTP/1.1")
-//             .unwrap()
-//             .trim().to_string()
-//     }
-// }
-//
-
-//
-// fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
-//     let mut buf_reader = BufReader::new(&stream);
-//     let mut lines = buf_reader.lines();
-//
-//     let header = lines.next().unwrap()?.to_string();
-//     let host_line:String = lines.next().unwrap()?.to_string();
-//     let host = host_line.replace("Host: ","");
-//     let mut content_len = 0;
-//     loop{
-//         let line = lines.next().unwrap()?;
-//         if line.is_empty() {
-//             break
-//         }
-//         if line.starts_with("Content-Length: "){
-//             content_len = line.strip_prefix("Content-Length: ").unwrap().parse::<i32>().unwrap();
-//         }
-//     }
-//     if(content_len==0){
-//         stream.flush()?;
-//         return Err(Error::last_os_error());
-//     }
-//     let mut remaining_chars:usize = content_len as usize;
-//     let mut body = "".to_string();
-//     loop{
-//         if remaining_chars<1 {
-//             break;
-//         }
-//         let line = lines.next().unwrap()?;
-//         remaining_chars -= line.bytes().len()+1;
-//         body = format!("{body}\n{line}");
-//     }
-//
-//
-//     let uri = extract_uri(header.as_str().parse().unwrap());
-//
-//     let response = respond(header.to_string(),host.to_string(),uri.to_string(),body);
-//
-//     let (status_line,content) = match response {
-//         Ok(content) => {
-//             ("HTTP/1.1 200 OK",content)
-//         }
-//         Err(err) => {
-//             ("HTTP/1.1 400 Bad Request",err)
-//         }
-//     };
-//
-//     let binding = get_mime_type(&uri);
-//     let mime = binding.as_str();
-//     let length = content.len();
-//
-//     let index_header = if BLOCK_INDEXING { "\r\nX-Robots-Tag: noindex" } else { "" };
-//     let header = format!("{status_line}\r\nContent-Type: {mime}\r\nContent-Length: {length}{index_header}\r\n\r\n");
-//
-//     stream.write(header.as_bytes())?;
-//     stream.write(content.as_bytes())?;
-//     stream.flush()
-// }
-//
-// fn respond(req_header:String,host:String,uri:String,body:String) -> Result<String,String>{
-//     if req_header.starts_with("GET"){
-//        return respond_get(req_header,host,uri);
-//     }
-//     if req_header.starts_with("POST"){
-//         return respond_post(req_header,host,uri,body);
-//     }
-//     return Err("Incorrect protocol".to_string());
-// }
-//
-// fn respond_post(req_header:String,host:String,uri:String,body:String)-> Result<String,String> {
-//     let host_words:Vec<&str> = host.split(".").collect();
-//     if host_words.len()!=4 {
-//         return Err("Malformed host".to_string())
-//     }
-//     let path = get_path_from_host(host,uri);
-//     println!("{}", path);
-//     return match File::create(path) {
-//         Ok(mut file) => {
-//             match file.write_all(body.as_bytes()) {
-//                 Ok(_) => {
-//                     Ok("received file".to_string())
-//                 }
-//                 Err(err) => {
-//                     Err(format!("cant write: {}", err))
-//                 }
-//             }
-//         }
-//         Err(err) => {
-//             Err(format!("cant open: {}", err))
-//         }
-//     }
-// }
-//
-// fn respond_get(req_header:String,host:String,uri:String) -> Result<String,String> {
-//
-//     let host_words:Vec<&str> = host.split(".").collect();
-//     if host_words.len()!=4 {
-//         return Err("Malformed host".to_string())
-//     }
-//     let path = get_path_from_host(host,uri);
-//     let contents = fs::read_to_string(path.clone());
-//     return match contents {
-//         Ok(content) => {
-//             Ok(content)
-//         }
-//         Err(error) => {
-//             Err(format!("File read error: {error}"))
-//         }
-//     }
-// }
-//
