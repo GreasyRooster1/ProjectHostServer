@@ -45,7 +45,7 @@ fn main() {
                 println!("Requested path: {:?}", path);
                 let contents = File::open(&path).unwrap();
 
-                rouille::Response::from_file(get_mime_type(path.as_str()),contents)
+                rouille::Response::from_file(get_mime_type(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
             },
 
             (PUT) (/{uri: String}) => {
