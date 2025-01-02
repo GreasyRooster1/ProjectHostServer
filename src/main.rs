@@ -41,7 +41,7 @@ fn main() {
 
             (GET) (/{uri: String}) => {
                 let host = request.header("Host").unwrap();
-                let path = get_path_from_host(host.to_string(),uri);
+                let path = get_path_from_host(host.to_string(),uri).unwrap();
                 println!("Requested path: {:?}", path);
                 let contents = File::open(&path).unwrap();
 
@@ -50,7 +50,7 @@ fn main() {
 
             (PUT) (/{uri: String}) => {
                 let host = request.header("Host").unwrap();
-                let path = get_path_from_host(host.to_string(),uri);
+                let path = get_path_from_host(host.to_string(),uri).unwrap();
                 let mut buffer = String::new();
 
                 request.data().unwrap().read_to_string(&mut buffer).expect("couldnt read body");
