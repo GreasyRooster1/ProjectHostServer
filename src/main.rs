@@ -56,6 +56,9 @@ fn main() {
                 let mut buffer = String::new();
                 let extension = Path::new(&path).extension().unwrap().to_str().unwrap();
 
+                if !WHITELIST_EXTENSIONS.contains(&extension){
+                    return rouille::Response::text("forbidden extension").with_status_code(403);
+                }
 
                 request.data().unwrap().read_to_string(&mut buffer).expect("couldnt read body");
                 let mut file = File::create(&path).unwrap();
