@@ -23,6 +23,7 @@ pub const HOST_PORT:&str = "1313";
 pub const BLOCK_INDEXING:bool = true;
 
 
+
 fn main() {
     let listener = TcpListener::bind(HOST_IP.to_owned()+":"+HOST_PORT).unwrap();
     let pool = ThreadPool::new(THREAD_POOL_SIZE);
