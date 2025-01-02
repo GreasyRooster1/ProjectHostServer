@@ -6,7 +6,7 @@ use std::{fs, io};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::{Component, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 use httpcodec::{BodyDecoder, ResponseDecoder};
@@ -25,6 +25,8 @@ pub const NOT_FOUND_PAGE:&str = include_str!("../404.html");
 pub const HOST_IP:&str = "127.0.0.1";
 pub const HOST_PORT:&str = "1313";
 pub const BLOCK_INDEXING:bool = true;
+
+pub const WHITELIST_EXTENSIONS: [&str;16] = ["png","jpg","wav","mp3","html","css","js","jsx","ts","tsx","jpeg","webp","txt","csv","json","http"];
 
 fn main() {
     let address = format!("{HOST_IP}:{HOST_PORT}");
@@ -52,6 +54,8 @@ fn main() {
                 let host = request.header("Host").unwrap();
                 let path = get_path_from_host(host.to_string(),uri).unwrap();
                 let mut buffer = String::new();
+                let extension = Path::new(&path).extension().unwrap().to_str().unwrap();
+
 
                 request.data().unwrap().read_to_string(&mut buffer).expect("couldnt read body");
                 let mut file = File::create(&path).unwrap();
