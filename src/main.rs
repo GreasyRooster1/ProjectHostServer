@@ -20,6 +20,7 @@ pub const NOT_FOUND_PAGE:&str = include_str!("../404.html");
 
 pub const HOST_IP:&str = "127.0.0.1";
 pub const HOST_PORT:&str = "1313";
+pub const BLOCK_INDEXING:bool = true;
 
 
 fn main() {
@@ -120,7 +121,8 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let mime = binding.as_str();
     let length = content.len();
 
-    let header = format!("{status_line}\r\nContent-Type: {mime}\r\nContent-Length: {length}\r\n\r\n");
+    let index_header = if BLOCK_INDEXING { "\r\nX-Robots-Tag: noindex" } else { "" };
+    let header = format!("{status_line}\r\nContent-Type: {mime}\r\nContent-Length: {length}{index_header}\r\n\r\n");
 
     stream.write(header.as_bytes())?;
     stream.write(content.as_bytes())?;
