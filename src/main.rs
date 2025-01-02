@@ -102,22 +102,21 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     }
     let mut remaining_chars:usize = content_len as usize;
     let mut lines =buf_reader.lines();
-    let mut body = "";
+    let mut body = "".to_string();
     loop{
         if(remaining_chars<1){
             break;
         }
         let line = lines.next().unwrap()?;
         remaining_chars -= line.len();
-        body = format!("{body}\n{line}").as_str();
+        body = format!("{body}\n{line}");
     }
-
 
     println!("{:#?}",http_request);
 
     let uri = extract_uri(header.as_str().parse().unwrap());
 
-    let response = respond(header.to_string(),host.to_string(),uri.to_string(),"str".to_string());
+    let response = respond(header.to_string(),host.to_string(),uri.to_string(),body);
 
     let (status_line,content) = match response {
         Ok(content) => {
