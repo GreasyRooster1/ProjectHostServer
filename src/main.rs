@@ -41,13 +41,26 @@ fn main() {
                 let host = request.header("Host").unwrap();
                 let path = get_path_from_host(host.to_string(),uri);
                 println!("Requested path: {:?}", path);
+                let contents = File::open(path).unwrap();
 
-
-                rouille::Response::text(format!("hello, {}", id))
+                rouille::Response::from_file(get_mime_type(path.as_str()),contents)
             },
             _ => rouille::Response::empty_404()
         )
     });
+}
+
+pub(crate) fn get_mime_type(path:&str)->String{
+    match path.split(".").last().unwrap() {
+        "html"=>{"text/html".to_string()}
+        "css"=>{"text/css".to_string()}
+        "js"=>{"text/javascript".to_string()}
+        "mjs"=>{"text/javascript".to_string()}
+        "ico"=>{"image/vnd.microsoft.icon".to_string()}
+        "png"=>{"image/png".to_string()}
+        "jpg"=>{"image/jpeg".to_string()}
+        _ => {"".to_string()}
+    }
 }
 
 fn get_path_from_host(host:String,uri:String)->String{
@@ -98,18 +111,7 @@ fn get_path_from_host(host:String,uri:String)->String{
 //     }
 // }
 //
-// pub(crate) fn get_mime_type(path:&str)->String{
-//     match path.split(".").last().unwrap() {
-//         "html"=>{"text/html".to_string()}
-//         "css"=>{"text/css".to_string()}
-//         "js"=>{"text/javascript".to_string()}
-//         "mjs"=>{"text/javascript".to_string()}
-//         "ico"=>{"image/vnd.microsoft.icon".to_string()}
-//         "png"=>{"image/png".to_string()}
-//         "jpg"=>{"image/jpeg".to_string()}
-//         _ => {"".to_string()}
-//     }
-// }
+
 //
 // fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
 //     let mut buf_reader = BufReader::new(&stream);
