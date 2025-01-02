@@ -42,7 +42,7 @@ fn main() {
             (GET) (/{uri: String}) => {
                 let host = request.header("Host").unwrap();
                 let path = get_path_from_host(host.to_string(),uri).unwrap();
-                println!("Requested path: {:?}", path);
+                println!("Requested path: {:?}, from host: {host}", path);
                 let contents = File::open(&path).unwrap();
 
                 rouille::Response::from_file(get_mime_type(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
