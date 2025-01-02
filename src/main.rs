@@ -6,6 +6,8 @@ use std::{fs, io};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error, Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::path::{Component, PathBuf};
+use std::str::FromStr;
 use std::sync::Arc;
 use httpcodec::{BodyDecoder, ResponseDecoder};
 use bytecodec::bytes::RemainingBytesDecoder;
@@ -50,6 +52,7 @@ fn main() {
                 let host = request.header("Host").unwrap();
                 let path = get_path_from_host(host.to_string(),uri);
                 let mut buffer = String::new();
+
                 request.data().unwrap().read_to_string(&mut buffer).expect("couldnt read body");
                 let mut file = File::create(&path).unwrap();
                 file.write_all(buffer.as_bytes()).unwrap();
@@ -76,8 +79,12 @@ pub(crate) fn get_mime_type(path:&str)->String{
     }
 }
 
-fn get_path_from_host(host:String,uri:String)->String{
+fn get_path_from_host(host:String,uri:String)->Result<String,String>{
     let host_words:Vec<&str> = host.split(".").collect();
-    format!("./data/{1}/{0}/{uri}",host_words[0],host_words[1])
+    let path = PathBuf::from_str(format!("./data/{1}/{0}/{uri}",host_words[0],host_words[1]).as_str()).unwrap();
+    if path.components().any(|x| x == Component::ParentDir) {
+        return Err("directory traversal".to_string());
+    }
+    Ok(path.as_path().to_str().unwrap().to_string())
 }
 
