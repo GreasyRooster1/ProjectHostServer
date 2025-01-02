@@ -81,7 +81,7 @@ pub(crate) fn get_mime_type(path:&str)->String{
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let mut buf_reader = BufReader::new(&stream);
-    let http_request: Vec<_> = buf_reader
+    let http_request: Vec<_> = BufReader::new(&stream)
         .lines()
         .map(|result| result.unwrap())
         .take_while(|line| !line.is_empty())
@@ -100,7 +100,18 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
         stream.flush()?;
         return Err(Error::last_os_error());
     }
-    let bytes =
+    let mut remaining_chars:usize = content_len as usize;
+    let mut lines =buf_reader.lines();
+    let mut body = "";
+    loop{
+        if(remaining_chars<1){
+            break;
+        }
+        let line = lines.next().unwrap()?;
+        remaining_chars -= line.len();
+        body = format!("{body}\n{line}").as_str();
+    }
+
 
     println!("{:#?}",http_request);
 
