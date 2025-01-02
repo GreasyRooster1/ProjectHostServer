@@ -81,19 +81,19 @@ pub(crate) fn get_mime_type(path:&str)->String{
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
     let mut buf_reader = BufReader::new(&stream);
-    let http_request: Vec<_> = BufReader::new(&stream)
-        .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
-        .collect();
+    let mut lines = buf_reader.lines();
 
-    let header = http_request.get(0).unwrap().to_string();
-    let host_line:String = http_request.get(1).unwrap().to_string();
+    let header = lines.next().unwrap()?.to_string();
+    let host_line:String = lines.next().unwrap()?.to_string();
     let host = host_line.replace("Host: ","");
     let mut content_len = 0;
-    for line in &http_request {
+    loop{
+        let line = lines.next().unwrap()?;
+        if line.is_empty() {
+            break
+        }
         if line.starts_with("Content-Length: "){
-            content_len = line.strip_prefix("Content-Length: ").unwrap().parse::<i32>().unwrap();;
+            content_len = line.strip_prefix("Content-Length: ").unwrap().parse::<i32>().unwrap();
         }
     }
     if(content_len==0){
@@ -101,18 +101,16 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
         return Err(Error::last_os_error());
     }
     let mut remaining_chars:usize = content_len as usize;
-    let mut lines =buf_reader.lines();
     let mut body = "".to_string();
     loop{
-        if(remaining_chars<1){
+        if remaining_chars<1 {
             break;
         }
         let line = lines.next().unwrap()?;
-        remaining_chars -= line.len();
+        remaining_chars -= line.bytes().len()+1;
         body = format!("{body}\n{line}");
     }
 
-    println!("{:#?}",http_request);
 
     let uri = extract_uri(header.as_str().parse().unwrap());
 
