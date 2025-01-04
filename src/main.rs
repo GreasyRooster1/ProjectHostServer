@@ -28,6 +28,7 @@ pub const BLOCK_INDEXING:bool = true;
 
 pub const WHITELIST_EXTENSIONS: [&str;16] = ["png","jpg","wav","mp3","html","css","js","jsx","ts","tsx","jpeg","webp","txt","csv","json","http"];
 
+
 fn main() {
     let address = format!("{HOST_IP}:{HOST_PORT}");
     println!("Now listening on {address}");
