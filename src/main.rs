@@ -13,6 +13,7 @@ use httpcodec::{BodyDecoder, ResponseDecoder};
 use bytecodec::bytes::RemainingBytesDecoder;
 use bytecodec::io::IoDecodeExt;
 use reqwest::header::USER_AGENT;
+use rouille::extension_to_mime;
 use serde::Deserialize;
 use serde_json::Value;
 use crate::workers::ThreadPool;
@@ -48,7 +49,7 @@ fn main() {
                 println!("Requested path: {:?}, from host: {host}", path);
                 let contents = File::open(&path).unwrap();
 
-                rouille::Response::from_file(get_mime_type(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
+                rouille::Response::from_file(extension_to_mime(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
             },
 
             (PUT) (/{uri: String}) => {
@@ -72,19 +73,6 @@ fn main() {
             _ => rouille::Response::empty_404()
         )
     });
-}
-
-pub(crate) fn get_mime_type(path:&str)->String{
-    match path.split(".").last().unwrap() {
-        "html"=>{"text/html".to_string()}
-        "css"=>{"text/css".to_string()}
-        "js"=>{"text/javascript".to_string()}
-        "mjs"=>{"text/javascript".to_string()}
-        "ico"=>{"image/vnd.microsoft.icon".to_string()}
-        "png"=>{"image/png".to_string()}
-        "jpg"=>{"image/jpeg".to_string()}
-        _ => {"".to_string()}
-    }
 }
 
 fn get_path_from_host(host:String,uri:String)->Result<String,String>{
