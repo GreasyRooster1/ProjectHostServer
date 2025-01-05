@@ -1482,6 +1482,8 @@ dependencies = [
  "chunked_transfer",
  "httpdate",
  "log",
+ "openssl",
+ "zeroize",
 ]
 
 [[package]]

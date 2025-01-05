@@ -1,11 +1,7 @@
 #[macro_use]
 extern crate rouille;
-mod workers;
 
-use base64::prelude::*;
-use bytecodec::io::IoDecodeExt;
 use rouille::extension_to_mime;
-use serde::Deserialize;
 use std::fs::File;
 use std::io::{BufRead, Read, Write};
 use std::path::{Component, Path, PathBuf};
@@ -25,7 +21,7 @@ fn main() {
     let address = format!("{HOST_IP}:{HOST_PORT}");
     println!("Now listening on {address}");
 
-    rouille::start_server(address, move |request| {
+    rouille::Server::new_ssl(address, move |request| {
         router!(request,
             (GET) (/) => {
                 rouille::Response::redirect_302("/index.html")
