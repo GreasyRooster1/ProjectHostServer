@@ -21,6 +21,9 @@ fn main() {
     let address = format!("{HOST_IP}:{HOST_PORT}");
     println!("Now listening on {address}");
 
+    let cert = include_str!("/cert/server.crt").as_bytes().to_vec();
+    let pkey = include_str!("/cert/server.key").as_bytes().to_vec();
+
     rouille::Server::new_ssl(address, move |request| {
         router!(request,
             (GET) (/) => {
