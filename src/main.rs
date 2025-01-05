@@ -63,7 +63,7 @@ fn main() {
             },
             _ => rouille::Response::empty_404()
         )
-    });
+    },cert,pkey).unwrap().run();
 }
 
 fn get_path_from_host(host:String,uri:String)->Result<String,String>{
