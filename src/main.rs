@@ -1,24 +1,15 @@
-mod workers;
-
-use std::collections::HashMap;
-use base64::prelude::*;
-use std::{fs, io};
-use std::fs::File;
-use std::io::{BufRead, BufReader, Error, Read, Write};
-use std::net::{TcpListener, TcpStream};
-use std::path::{Component, Path, PathBuf};
-use std::str::FromStr;
-use std::sync::Arc;
-use httpcodec::{BodyDecoder, ResponseDecoder};
-use bytecodec::bytes::RemainingBytesDecoder;
-use bytecodec::io::IoDecodeExt;
-use reqwest::header::USER_AGENT;
-use rouille::extension_to_mime;
-use serde::Deserialize;
-use serde_json::Value;
-use crate::workers::ThreadPool;
 #[macro_use]
 extern crate rouille;
+mod workers;
+
+use base64::prelude::*;
+use bytecodec::io::IoDecodeExt;
+use rouille::extension_to_mime;
+use serde::Deserialize;
+use std::fs::File;
+use std::io::{BufRead, Read, Write};
+use std::path::{Component, Path, PathBuf};
+use std::str::FromStr;
 
 pub const THREAD_POOL_SIZE:usize = 64;
 pub const NOT_FOUND_PAGE:&str = include_str!("../404.html");
@@ -33,6 +24,7 @@ pub const WHITELIST_EXTENSIONS: [&str;16] = ["png","jpg","wav","mp3","html","css
 fn main() {
     let address = format!("{HOST_IP}:{HOST_PORT}");
     println!("Now listening on {address}");
+
     rouille::start_server(address, move |request| {
         router!(request,
             (GET) (/) => {

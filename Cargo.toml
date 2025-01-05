@@ -12,5 +12,6 @@ httpcodec = "0.2.3"
 bytecodec = "0.4.15"
 rouille = "3.6.2"
 ring = "0.17.8"
+hex = "0.4.3"
 #openssl = { version = "0.10", features = ["vendored"] }
 #rs-firebase-admin-sdk = "2.3.1"
