@@ -10,8 +10,8 @@ use std::str::FromStr;
 pub const THREAD_POOL_SIZE:usize = 64;
 pub const NOT_FOUND_PAGE:&str = include_str!("../404.html");
 
-pub const HOST_IP:&str = "127.0.0.1";
-pub const HOST_PORT:&str = "1313";
+pub const HOST_IP:&str = "0.0.0.0";
+pub const HOST_PORT:&str = "1312";
 pub const BLOCK_INDEXING:bool = true;
 
 pub const WHITELIST_EXTENSIONS: [&str;16] = ["png","jpg","wav","mp3","html","css","js","jsx","ts","tsx","jpeg","webp","txt","csv","json","http"];
@@ -25,7 +25,7 @@ fn main() {
     let cert = include_str!("../cert/cacert.pem").as_bytes().to_vec();
     let pkey = include_str!("../cert/cakey.pem").as_bytes().to_vec();
 
-    rouille::Server::new_ssl(address, move |request| {
+    rouille::start_server(address, move |request| {
         router!(request,
             (GET) (/) => {
                 rouille::Response::redirect_302("/index.html")
@@ -37,8 +37,9 @@ fn main() {
 
             (GET) (/{uri: String}) => {
                 let host = request.header("Host").unwrap();
+                println!("from host: {host}");
                 let path = get_path_from_host(host.to_string(),uri).unwrap();
-                println!("Requested path: {:?}, from host: {host}", path);
+                println!("Requested path: {:?}", path);
                 let contents = File::open(&path).unwrap();
 
                 rouille::Response::from_file(extension_to_mime(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
@@ -64,7 +65,11 @@ fn main() {
             },
             _ => rouille::Response::empty_404()
         )
-    },cert,pkey).unwrap().run();
+    });//,cert,pkey).unwrap().run();
+}
+
+fn resolve_uri(){
+
 }
 
 fn get_path_from_host(host:String,uri:String)->Result<String,String>{
