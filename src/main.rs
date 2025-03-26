@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate rouille;
 
-use rouille::extension_to_mime;
+use rouille::{extension_to_mime, Request, Response};
 use std::fs::File;
 use std::io::{BufRead, Read, Write};
 use std::path::{Component, Path, PathBuf};
@@ -28,7 +28,7 @@ fn main() {
     rouille::start_server(address, move |request| {
         router!(request,
             (GET) (/) => {
-                rouille::Response::redirect_302("/index.html")
+                resolve_uri(request, "/index.html".to_string())
             },
 
             (GET) (/stats) => {
@@ -36,13 +36,7 @@ fn main() {
             },
 
             (GET) (/{uri: String}) => {
-                let host = request.header("Host").unwrap();
-                println!("from host: {host}");
-                let path = get_path_from_host(host.to_string(),uri).unwrap();
-                println!("Requested path: {:?}", path);
-                let contents = File::open(&path).unwrap();
-
-                rouille::Response::from_file(extension_to_mime(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
+                resolve_uri(request, uri)
             },
 
             (PUT) (/{uri: String}) => {
@@ -68,8 +62,14 @@ fn main() {
     });//,cert,pkey).unwrap().run();
 }
 
-fn resolve_uri(){
+fn resolve_uri(request: &Request,uri:String)->Response{
+    let host = request.header("Host").unwrap();
+    println!("from host: {host}");
+    let path = get_path_from_host(host.to_string(),uri).unwrap();
+    println!("Requested path: {:?}", path);
+    let contents = File::open(&path).unwrap();
 
+    rouille::Response::from_file(extension_to_mime(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
 }
 
 fn get_path_from_host(host:String,uri:String)->Result<String,String>{
