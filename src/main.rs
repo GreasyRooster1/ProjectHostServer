@@ -17,7 +17,6 @@ pub const BLOCK_INDEXING:bool = true;
 pub const WHITELIST_EXTENSIONS: [&str;16] = ["png","jpg","wav","mp3","html","css","js","jsx","ts","tsx","jpeg","webp","txt","csv","json","http"];
 
 
-
 fn main() {
     let address = format!("{HOST_IP}:{HOST_PORT}");
     println!("Now listening on {address}");
@@ -28,7 +27,7 @@ fn main() {
     rouille::start_server(address, move |request| {
         router!(request,
             (GET) (/) => {
-                resolve_uri(request, "/index.html".to_string())
+                resolve_uri(request, "index.html".to_string())
             },
 
             (GET) (/stats) => {
@@ -67,9 +66,14 @@ fn resolve_uri(request: &Request,uri:String)->Response{
     println!("from host: {host}");
     let path = get_path_from_host(host.to_string(),uri).unwrap();
     println!("Requested path: {:?}", path);
-    let contents = File::open(&path).unwrap();
+    let contents = match File::open(&path) {
+        Ok(c) => c,
+        Err(_) => {
+            return Response::from_data("text/html", NOT_FOUND_PAGE).with_unique_header("X-Robots-Tag","no-index")
+        }
+    };
 
-    rouille::Response::from_file(extension_to_mime(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
+    Response::from_file(extension_to_mime(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
 }
 
 fn get_path_from_host(host:String,uri:String)->Result<String,String>{
