@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate rouille;
 
+use std::fs;
 use rouille::{extension_to_mime, Request, Response};
 use std::fs::File;
 use std::io::{BufRead, Read, Write};
@@ -42,13 +43,15 @@ fn main() {
                 let host = request.header("Host").unwrap();
                 let path = get_path_from_host(host.to_string(),uri).unwrap();
                 let mut buffer = String::new();
-                let extension = Path::new(&path).extension().unwrap().to_str().unwrap();
+                let pathObj = Path::new(&path)
+                let extension = pathObj.extension().unwrap().to_str().unwrap();
 
                 if !WHITELIST_EXTENSIONS.contains(&extension){
                     return rouille::Response::text("forbidden extension").with_status_code(403);
                 }
 
                 request.data().unwrap().read_to_string(&mut buffer).expect("couldnt read body");
+                fs::create_dir_all(pathObj.parent()).expect("failed to make dirs");
                 let mut file = File::create(&path).unwrap();
                 file.write_all(buffer.as_bytes()).unwrap();
 
