@@ -1,12 +1,19 @@
 #[macro_use]
 extern crate rouille;
 
+use rs_firebase_admin_sdk::{
+    auth::{FirebaseAuthService, UserIdentifiers},
+    client::ApiHttpClient,
+    App, credentials_provider,
+};
+
 use std::fs;
 use rouille::{extension_to_mime, Request, Response};
 use std::fs::File;
 use std::io::{BufRead, Read, Write};
 use std::path::{Component, Path, PathBuf};
 use std::str::FromStr;
+use rs_firebase_admin_sdk::auth::token::TokenVerifier;
 
 pub const THREAD_POOL_SIZE:usize = 64;
 pub const NOT_FOUND_PAGE:&str = include_str!("../404.html");
@@ -18,14 +25,20 @@ pub const BLOCK_INDEXING:bool = true;
 pub const WHITELIST_EXTENSIONS: [&str;16] = ["png","jpg","wav","mp3","html","css","js","jsx","ts","tsx","jpeg","webp","txt","csv","json","http"];
 pub const BLACKLIST_HOSTS: [&str;1] = ["code"];
 
-fn main() {
+#[tokio::main]
+async fn main() {
+    let gcp_service_account = credentials_provider().await.unwrap();
+    // Create live (not emulated) context for Firebase app
+    let live_app = App::live(gcp_service_account.into()).await.unwrap();
+    let auth_admin = live_app.auth();
+
     let address = format!("{HOST_IP}:{HOST_PORT}");
     println!("Now listening on {address}");
 
     let cert = include_str!("../cert/cacert.pem").as_bytes().to_vec();
     let pkey = include_str!("../cert/cakey.pem").as_bytes().to_vec();
 
-    rouille::start_server(address, move |request| {
+    rouille::start_server(address, async move |request| {
         router!(request,
             (GET) (/) => {
                 resolve_uri(request, "index.html".to_string())
@@ -40,6 +53,11 @@ fn main() {
             },
 
             (PUT) (/{uri: String}) => {
+                let gcp_service_account = credentials_provider().await.unwrap();
+                let live_app = App::live(gcp_service_account).await.unwrap();
+                let live_token_verifier = live_app.id_token_verifier().await.unwrap();
+                //verify_token(_, &live_token_verifier).await;
+
                 let host = request.header("Host").unwrap();
                 let path = get_path_from_host(host.to_string(),uri).unwrap();
                 let mut buffer = String::new();
@@ -88,3 +106,14 @@ fn get_path_from_host(host:String,uri:String)->Result<String,String>{
     Ok(path.as_path().to_str().unwrap().to_string())
 }
 
+async fn verify_token<T: TokenVerifier>(token: &str, verifier: &T) {
+    match verifier.verify_token(token).await {
+        Ok(token) => {
+            let user_id = token.critical_claims.sub;
+            println!("Token for user {user_id} is valid!")
+        }
+        Err(err) => {
+            println!("Token is invalid because {err}!")
+        }
+    }
+}
