@@ -31,6 +31,7 @@ async fn main() {
     // Create live (not emulated) context for Firebase app
     let live_app = App::live(gcp_service_account.into()).await.unwrap();
     let auth_admin = live_app.auth();
+    let live_token_verifier = live_app.id_token_verifier().await.unwrap();
 
     let address = format!("{HOST_IP}:{HOST_PORT}");
     println!("Now listening on {address}");
@@ -53,9 +54,7 @@ async fn main() {
             },
 
             (PUT) (/{uri: String}) => {
-                let gcp_service_account = credentials_provider().await.unwrap();
-                let live_app = App::live(gcp_service_account).await.unwrap();
-                let live_token_verifier = live_app.id_token_verifier().await.unwrap();
+
                 //verify_token(_, &live_token_verifier).await;
 
                 let host = request.header("Host").unwrap();
@@ -69,7 +68,7 @@ async fn main() {
                 }
 
                 request.data().unwrap().read_to_string(&mut buffer).expect("couldnt read body");
-                fs::create_dir_all(pathObj.parent()).expect("failed to make dirs");
+                fs::create_dir_all(pathObj.parent().unwrap()).expect("failed to make dirs");
                 let mut file = File::create(&path).unwrap();
                 file.write_all(buffer.as_bytes()).unwrap();
 
@@ -84,9 +83,9 @@ async fn main() {
 
 fn resolve_uri(request: &Request,uri:String)->Response{
     let host = request.header("Host").unwrap();
-    let words = host.split(".");
+    let words: Vec<_> = host.split(".").collect();
     println!("from host: {host}");
-    let path = get_path_from_host(words[0].to_string(),uri).unwrap();
+    let path = get_path_from_host(words[0] .to_string(),uri).unwrap();
     println!("Requested path: {:?}", path);
     let contents = match File::open(&path) {
         Ok(c) => c,
