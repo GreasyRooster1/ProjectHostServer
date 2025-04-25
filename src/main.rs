@@ -16,7 +16,7 @@ pub const HOST_PORT:&str = "1312";
 pub const BLOCK_INDEXING:bool = true;
 
 pub const WHITELIST_EXTENSIONS: [&str;16] = ["png","jpg","wav","mp3","html","css","js","jsx","ts","tsx","jpeg","webp","txt","csv","json","http"];
-
+pub const BLACKLIST_HOSTS: [&str;1] = ["code"];
 
 fn main() {
     let address = format!("{HOST_IP}:{HOST_PORT}");
@@ -43,7 +43,7 @@ fn main() {
                 let host = request.header("Host").unwrap();
                 let path = get_path_from_host(host.to_string(),uri).unwrap();
                 let mut buffer = String::new();
-                let pathObj = Path::new(&path)
+                let pathObj = Path::new(&path);
                 let extension = pathObj.extension().unwrap().to_str().unwrap();
 
                 if !WHITELIST_EXTENSIONS.contains(&extension){
@@ -66,8 +66,9 @@ fn main() {
 
 fn resolve_uri(request: &Request,uri:String)->Response{
     let host = request.header("Host").unwrap();
+    let words = host.split(".");
     println!("from host: {host}");
-    let path = get_path_from_host(host.to_string(),uri).unwrap();
+    let path = get_path_from_host(words[0].to_string(),uri).unwrap();
     println!("Requested path: {:?}", path);
     let contents = match File::open(&path) {
         Ok(c) => c,
