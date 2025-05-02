@@ -89,7 +89,10 @@ fn put_uri(request: &Request,uri:String)->Response {
     }
 
     request.data().unwrap().read_to_string(&mut buffer).expect("couldnt read body");
-    fs::create_dir_all(pathObj.parent().unwrap()).expect("failed to make dirs");
+    let _ = match fs::create_dir_all(pathObj){
+        Ok(_) => {}
+        Err(_) => {}
+    };
     let mut file = File::create(&path).unwrap();
     file.write_all(buffer.as_bytes()).unwrap();
 
@@ -100,9 +103,8 @@ fn put_uri(request: &Request,uri:String)->Response {
 
 fn resolve_uri(request: &Request,uri:String)->Response{
     let host = request.header("Host").unwrap();
-    let words: Vec<_> = host.split(".").collect();
     println!("from host: {host}");
-    let path = get_path_from_host(words[0] .to_string(),uri).unwrap();
+    let path = get_path_from_host(host.to_string(),uri).unwrap();
     println!("Requested path: {:?}", path);
     let contents = match File::open(&path) {
         Ok(c) => c,
@@ -115,7 +117,8 @@ fn resolve_uri(request: &Request,uri:String)->Response{
 }
 
 fn get_path_from_host(host:String,uri:String)->Result<String,String>{
-    let path = PathBuf::from_str(format!("./data/{0}{uri}",host).as_str()).unwrap();
+    let words: Vec<_> = host.split(".").collect();
+    let path = PathBuf::from_str(format!("./data/{0}{uri}",words[0]).as_str()).unwrap();
     if path.components().any(|x| x == Component::ParentDir) {
         return Err("directory traversal".to_string());
     }
