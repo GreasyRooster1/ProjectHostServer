@@ -115,7 +115,7 @@ fn resolve_uri(request: &Request,uri:String)->Response{
 }
 
 fn get_path_from_host(host:String,uri:String)->Result<String,String>{
-    let path = PathBuf::from_str(format!("./data/{0}/{uri}",host).as_str()).unwrap();
+    let path = PathBuf::from_str(format!("./data/{0}{uri}",host).as_str()).unwrap();
     if path.components().any(|x| x == Component::ParentDir) {
         return Err("directory traversal".to_string());
     }
