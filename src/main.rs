@@ -8,7 +8,7 @@ use rs_firebase_admin_sdk::{
     App, credentials_provider,
 };
 
-use std::fs;
+use std::{fs, io};
 use rouille::{extension_to_mime, Request, Response};
 use std::fs::File;
 use std::io::{BufRead, Read, Write};
@@ -17,6 +17,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 use rs_firebase_admin_sdk::auth::token::TokenVerifier;
 use futures::executor::block_on;
+use log::{info, warn};
 
 pub const THREAD_POOL_SIZE:usize = 64;
 pub const NOT_FOUND_PAGE:&str = include_str!("../404.html");
@@ -53,36 +54,38 @@ async fn main() {
     let token = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjkwOTg1NzhjNDg4MWRjMDVlYmYxOWExNWJhMjJkOGZkMWFiMzRjOGEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vcWNvZGUtY2RmYzYiLCJhdWQiOiJxY29kZS1jZGZjNiIsImF1dGhfdGltZSI6MTc0MTU1NTM0NywidXNlcl9pZCI6ImpFTWgza2VtM2VNUVZsaHl2ODZsaGl2dDNTSDMiLCJzdWIiOiJqRU1oM2tlbTNlTVFWbGh5djg2bGhpdnQzU0gzIiwiaWF0IjoxNzQ1NjkwODU4LCJleHAiOjE3NDU2OTQ0NTgsImVtYWlsIjoiZ3JlYXN5cm9vc3RlcjFAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImdyZWFzeXJvb3N0ZXIxQGdtYWlsLmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6InBhc3N3b3JkIn19.FTkmJBpl8DvKyR4BRf3d7-sVzBfzrcRI6gflQlafIhPMfBf2If8DV3TzLfIeaoqLOkOhfh_qE4MaHa-RagFsywY9AJjBR0TTJ2hYLnTxOi2ShkKZfnsV7OIQy32aK3_ln2ihzHJan5pKyapNfwZGR7IS1RR8kMfrRGEvL-5-bonHB_0Z3QCA-el6spfXRQIpKY5kgNRt4biTRc6skAET1ZYm-91YT_GlgCqdTA2GA-c2rYPUUusANW-TXL1_o2FHEs6iNqai_STX15Q2Sqz0XlLlngTg-CgPGQPexBN1EDw_8FPfgoCJhkHdy2zSPFrkPysZiMlTsym7wUVKJDdbKQ";
 
     rouille::start_server(address, move |request| {
-        router!(request,
-            (GET) (/) => {
-                resolve_uri(request, "index.html".to_string())
-            },
+        rouille::log(request, io::stdout(), || {
+            router!(request,
+                (GET) (/) => {
+                    resolve_uri(request, "index.html".to_string())
+                },
 
-            (GET) (/stats) => {
-                panic!("Not implemented yet")
-            },
+                (GET) (/stats) => {
+                    panic!("Not implemented yet")
+                },
 
-            (GET) (/{uri: String}) => {
-                resolve_uri(request, uri)
-            },
+                (GET) (/{uri: String}) => {
+                    resolve_uri(request, uri)
+                },
 
-            (PUT) (/{uri: String}) => {
-                put_uri(request, uri)
+                (PUT) (/{uri: String}) => {
+                    put_uri(request, uri)
 
-            },
+                },
 
-            _ => {
-                let req_path = request.url();
+                _ => {
+                    let req_path = request.url();
 
-                if request.method() == "GET" {
-                    resolve_uri(request, req_path)
-                } else if request.method() == "PUT"{
-                    put_uri(request, req_path)
-                }else {
-                    Response::empty_404()
+                    if request.method() == "GET" {
+                        resolve_uri(request, req_path)
+                    } else if request.method() == "PUT"{
+                        put_uri(request, req_path)
+                    }else {
+                        Response::empty_404()
+                    }
                 }
-            }
-        )
+            )
+        })
     });//,cert,pkey).unwrap().run();
 }
 
