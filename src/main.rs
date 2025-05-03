@@ -2,11 +2,11 @@
 extern crate rouille;
 
 use std::collections::HashMap;
-use rs_firebase_admin_sdk::{
-    auth::{FirebaseAuthService, UserIdentifiers},
-    client::ApiHttpClient,
-    App, credentials_provider,
-};
+// use rs_firebase_admin_sdk::{
+//     auth::{FirebaseAuthService, UserIdentifiers},
+//     client::ApiHttpClient,
+//     App, credentials_provider,
+// };
 
 use std::{fs, io};
 use rouille::{extension_to_mime, Request, Response};
@@ -17,7 +17,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 use rs_firebase_admin_sdk::auth::token::TokenVerifier;
 use futures::executor::block_on;
-use log::{info, warn};
+use log::{error, info, warn};
 use simplelog::*;
 
 pub const THREAD_POOL_SIZE:usize = 64;
@@ -47,9 +47,9 @@ async fn main() {
         ]
     ).unwrap();
 
-    let gcp_service_account = credentials_provider().await.unwrap();
+    //let gcp_service_account = credentials_provider().await.unwrap();
     // Create live (not emulated) context for Firebase app
-    let live_app = App::live(gcp_service_account.into()).await.unwrap();
+    //let live_app = App::live(gcp_service_account.into()).await.unwrap();
     let auth_admin = live_app.auth();
     let live_token_verifier = live_app.id_token_verifier().await.unwrap();
 
@@ -63,7 +63,14 @@ async fn main() {
     let token = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjkwOTg1NzhjNDg4MWRjMDVlYmYxOWExNWJhMjJkOGZkMWFiMzRjOGEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vcWNvZGUtY2RmYzYiLCJhdWQiOiJxY29kZS1jZGZjNiIsImF1dGhfdGltZSI6MTc0MTU1NTM0NywidXNlcl9pZCI6ImpFTWgza2VtM2VNUVZsaHl2ODZsaGl2dDNTSDMiLCJzdWIiOiJqRU1oM2tlbTNlTVFWbGh5djg2bGhpdnQzU0gzIiwiaWF0IjoxNzQ1NjkwODU4LCJleHAiOjE3NDU2OTQ0NTgsImVtYWlsIjoiZ3JlYXN5cm9vc3RlcjFAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImdyZWFzeXJvb3N0ZXIxQGdtYWlsLmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6InBhc3N3b3JkIn19.FTkmJBpl8DvKyR4BRf3d7-sVzBfzrcRI6gflQlafIhPMfBf2If8DV3TzLfIeaoqLOkOhfh_qE4MaHa-RagFsywY9AJjBR0TTJ2hYLnTxOi2ShkKZfnsV7OIQy32aK3_ln2ihzHJan5pKyapNfwZGR7IS1RR8kMfrRGEvL-5-bonHB_0Z3QCA-el6spfXRQIpKY5kgNRt4biTRc6skAET1ZYm-91YT_GlgCqdTA2GA-c2rYPUUusANW-TXL1_o2FHEs6iNqai_STX15Q2Sqz0XlLlngTg-CgPGQPexBN1EDw_8FPfgoCJhkHdy2zSPFrkPysZiMlTsym7wUVKJDdbKQ";
 
     rouille::start_server(address, move |request| {
-        rouille::log(request, io::stdout(), || {
+        let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S%.6f");
+        let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
+            info!("{} {} {}", now, req.method(), req.raw_url());
+        };
+        let log_err = |req: &Request, _elap: std::time::Duration| {
+            error!("{} Handler panicked: {} {}", now, req.method(), req.raw_url());
+        };
+        rouille::log_custom(request, log_ok, log_err, move |request| {
             router!(request,
                 (GET) (/) => {
                     resolve_uri(request, "index.html".to_string())
@@ -98,17 +105,8 @@ async fn main() {
     });//,cert,pkey).unwrap().run();
 }
 
-fn handle(request: &Request) -> Response {
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S%.6f");
-    let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
-        info!("{} {} {}", now, req.method(), req.raw_url());
-    };
-    let log_err = |req: &Request, _elap: std::time::Duration| {
-        error!("{} Handler panicked: {} {}", now, req.method(), req.raw_url());
-    };
-    rouille::log_custom(request, log_ok, log_err, || {
-        Response::text("hello world")
-    })
+fn log_handle(request: &Request,handler:) -> Response {
+
 }
 
 fn put_uri(request: &Request,uri:String)->Response {
