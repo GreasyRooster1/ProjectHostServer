@@ -17,7 +17,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 //use rs_firebase_admin_sdk::auth::token::TokenVerifier;
 use futures::executor::block_on;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use simplelog::*;
 
 pub const THREAD_POOL_SIZE:usize = 64;
@@ -65,7 +65,7 @@ async fn main() {
     rouille::start_server(address, move |request| {
         let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S%.6f");
         let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
-            info!("{} {} {}", now, req.method(), req.raw_url());
+            info!("{} {} {} {}", now, req.method(), req.raw_url(),req.header("Host").unwrap());
         };
         let log_err = |req: &Request, _elap: std::time::Duration| {
             error!("{} Handler panicked: {} {}", now, req.method(), req.raw_url());
@@ -73,6 +73,7 @@ async fn main() {
         rouille::log_custom(request, log_ok, log_err,  || {
             router!(request,
                 (GET) (/) => {
+                    debug!("{} {} {} redirecting to index.html ",now, request.method(), request.raw_url(),request.header("Host").unwrap())
                     resolve_uri(request, "index.html".to_string())
                 },
 
@@ -80,23 +81,17 @@ async fn main() {
                     panic!("Not implemented yet")
                 },
 
-                (GET) (/{uri: String}) => {
-                    resolve_uri(request, uri)
-                },
-
-                (PUT) (/{uri: String}) => {
-                    put_uri(request, uri)
-
-                },
-
                 _ => {
                     let req_path = request.url();
 
                     if request.method() == "GET" {
+                        debug!("{} {} {} requested file read",now, request.method(), request.raw_url(),request.header("Host").unwrap())
                         resolve_uri(request, req_path)
                     } else if request.method() == "PUT"{
+                        info!("{} {} {} requested file edit",now, request.method(), request.raw_url(),request.header("Host").unwrap())
                         put_uri(request, req_path)
                     }else {
+                        warn!("{} {} {} unknown request method",now, request.method(), request.raw_url(),request.header("Host").unwrap())
                         Response::empty_404()
                     }
                 }
