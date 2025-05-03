@@ -18,6 +18,7 @@ use std::sync::Mutex;
 use rs_firebase_admin_sdk::auth::token::TokenVerifier;
 use futures::executor::block_on;
 use log::{info, warn};
+use simplelog::*;
 
 pub const THREAD_POOL_SIZE:usize = 64;
 pub const NOT_FOUND_PAGE:&str = include_str!("../404.html");
@@ -38,6 +39,14 @@ struct SessionData {
 
 #[tokio::main]
 async fn main() {
+
+    CombinedLogger::init(
+        vec![
+            TermLogger::new(LevelFilter::Warn, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
+            WriteLogger::new(LevelFilter::Info, Config::default(), File::create("log.log").unwrap()),
+        ]
+    ).unwrap();
+
     let gcp_service_account = credentials_provider().await.unwrap();
     // Create live (not emulated) context for Firebase app
     let live_app = App::live(gcp_service_account.into()).await.unwrap();
@@ -87,6 +96,19 @@ async fn main() {
             )
         })
     });//,cert,pkey).unwrap().run();
+}
+
+fn handle(request: &Request) -> Response {
+    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S%.6f");
+    let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
+        info!("{} {} {}", now, req.method(), req.raw_url());
+    };
+    let log_err = |req: &Request, _elap: std::time::Duration| {
+        error!("{} Handler panicked: {} {}", now, req.method(), req.raw_url());
+    };
+    rouille::log_custom(request, log_ok, log_err, || {
+        Response::text("hello world")
+    })
 }
 
 fn put_uri(request: &Request,uri:String)->Response {
