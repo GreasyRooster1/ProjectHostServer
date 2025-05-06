@@ -114,13 +114,17 @@ fn put_uri(request: &Request,uri:String)->Response {
         return rouille::Response::text("forbidden extension").with_status_code(403);
     }
 
-    let bytes = request.data().unwrap().bytes();
+    let bytes = request.data().unwrap().bytes()
     let _ = match fs::create_dir_all(pathObj.parent().unwrap()){
         Ok(_) => {}
         Err(_) => {}
     };
-    let mut file = File::create(&path).unwrap();
-    file.write_all(bytes.collect()).unwrap();
+    let mut file:File = File::create(&path).unwrap();
+
+    file.write_all(&[]).expect("could not clear file");
+    for byte in bytes {
+        file.write(&[byte.unwrap()]).expect("failed to write");
+    }
 
     println!("Wrote to path: {:?}", path);
 
