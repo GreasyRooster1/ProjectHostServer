@@ -73,7 +73,7 @@ async fn main() {
         rouille::log_custom(request, log_ok, log_err,  || {
             router!(request,
                 (GET) (/) => {
-                    debug!("{} {} {} redirecting to index.html ",now, request.method(), request.raw_url(),request.header("Host").unwrap())
+                    debug!("{} {} {} {} redirecting to index.html ",now, request.method(), request.raw_url(),request.header("Host").unwrap());
                     resolve_uri(request, "index.html".to_string())
                 },
 
@@ -85,13 +85,13 @@ async fn main() {
                     let req_path = request.url();
 
                     if request.method() == "GET" {
-                        debug!("{} {} {} requested file read",now, request.method(), request.raw_url(),request.header("Host").unwrap())
+                        debug!("{} {} {} {} requested file read",now, request.method(), request.raw_url(),request.header("Host").unwrap());
                         resolve_uri(request, req_path)
                     } else if request.method() == "PUT"{
-                        info!("{} {} {} requested file edit",now, request.method(), request.raw_url(),request.header("Host").unwrap())
+                        info!("{} {} {} {} requested file edit",now, request.method(), request.raw_url(),request.header("Host").unwrap());
                         put_uri(request, req_path)
                     }else {
-                        warn!("{} {} {} unknown request method",now, request.method(), request.raw_url(),request.header("Host").unwrap())
+                        warn!("{} {} {} {} unknown request method",now, request.method(), request.raw_url(),request.header("Host").unwrap());
                         Response::empty_404()
                     }
                 }
@@ -114,13 +114,13 @@ fn put_uri(request: &Request,uri:String)->Response {
         return rouille::Response::text("forbidden extension").with_status_code(403);
     }
 
-    request.data().unwrap().read_to_string(&mut buffer).expect("couldnt read body");
-    let _ = match fs::create_dir_all(pathObj){
+    let bytes = request.data().unwrap().bytes();
+    let _ = match fs::create_dir_all(pathObj.parent().unwrap()){
         Ok(_) => {}
         Err(_) => {}
     };
     let mut file = File::create(&path).unwrap();
-    file.write_all(buffer.as_bytes()).unwrap();
+    file.write_all(bytes.collect()).unwrap();
 
     println!("Wrote to path: {:?}", path);
 
