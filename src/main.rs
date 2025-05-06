@@ -9,6 +9,7 @@ use rs_firebase_admin_sdk::{
 };
 
 use std::{fs, io};
+use std::ffi::OsStr;
 use rouille::{extension_to_mime, Request, Response};
 use std::fs::File;
 use std::io::{BufRead, Read, Write};
@@ -114,7 +115,7 @@ fn put_uri(request: &Request,uri:String)->Response {
         return rouille::Response::text("forbidden extension").with_status_code(403);
     }
 
-    let bytes = request.data().unwrap().bytes()
+    let bytes = request.data().unwrap().bytes();
     let _ = match fs::create_dir_all(pathObj.parent().unwrap()){
         Ok(_) => {}
         Err(_) => {}
@@ -142,8 +143,10 @@ fn resolve_uri(request: &Request,uri:String)->Response{
             return Response::from_data("text/html", NOT_FOUND_PAGE).with_unique_header("X-Robots-Tag","no-index")
         }
     };
-
-    Response::from_file(extension_to_mime(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
+    let extension = Path::new(&path)
+        .extension()
+        .and_then(OsStr::to_str).unwrap();
+    Response::from_file(extension_to_mime(extension),contents).with_unique_header("X-Robots-Tag","no-index")
 }
 
 fn get_path_from_host(host:String,uri:String)->Result<String,String>{
