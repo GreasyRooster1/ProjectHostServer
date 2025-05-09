@@ -9,6 +9,7 @@ use rs_firebase_admin_sdk::{
 };
 
 use std::{fs, io};
+use std::ffi::OsStr;
 use rouille::{extension_to_mime, Request, Response};
 use std::fs::File;
 use std::io::{BufRead, Read, Write};
@@ -114,13 +115,17 @@ fn put_uri(request: &Request,uri:String)->Response {
         return rouille::Response::text("forbidden extension").with_status_code(403);
     }
 
-    request.data().unwrap().read_to_string(&mut buffer).expect("couldnt read body");
-    let _ = match fs::create_dir_all(pathObj){
+    let bytes = request.data().unwrap().bytes();
+    let _ = match fs::create_dir_all(pathObj.parent().unwrap()){
         Ok(_) => {}
         Err(_) => {}
     };
-    let mut file = File::create(&path).unwrap();
-    file.write_all(buffer.as_bytes()).unwrap();
+    let mut file:File = File::create(&path).unwrap();
+
+    file.write_all(&[]).expect("could not clear file");
+    for byte in bytes {
+        file.write(&[byte.unwrap()]).expect("failed to write");
+    }
 
     info!("{} {} {} wrote to path {:?}",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap(), path);
 
@@ -143,8 +148,10 @@ fn resolve_uri(request: &Request,uri:String)->Response{
             return Response::from_data("text/html", NOT_FOUND_PAGE).with_unique_header("X-Robots-Tag","no-index")
         }
     };
-
-    Response::from_file(extension_to_mime(path.as_str()),contents).with_unique_header("X-Robots-Tag","no-index")
+    let extension = Path::new(&path)
+        .extension()
+        .and_then(OsStr::to_str).unwrap();
+    Response::from_file(extension_to_mime(extension),contents).with_unique_header("X-Robots-Tag","no-index")
 }
 
 fn get_path_from_host(host:String,uri:String)->Result<String,String>{
