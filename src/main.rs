@@ -42,7 +42,7 @@ async fn main() {
 
     CombinedLogger::init(
         vec![
-            TermLogger::new(LevelFilter::Warn, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
+            TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
             WriteLogger::new(LevelFilter::Info, Config::default(), File::create("logs/logs.log").unwrap()),
         ]
     ).unwrap();
@@ -73,7 +73,7 @@ async fn main() {
         rouille::log_custom(request, log_ok, log_err,  || {
             router!(request,
                 (GET) (/) => {
-                    debug!("{} {} {} redirecting to index.html ",now, request.method(), request.raw_url(),request.header("Host").unwrap())
+                    debug!("{} {} {} redirecting to index.html ",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap())
                     resolve_uri(request, "index.html".to_string())
                 },
 
@@ -85,13 +85,13 @@ async fn main() {
                     let req_path = request.url();
 
                     if request.method() == "GET" {
-                        debug!("{} {} {} requested file read",now, request.method(), request.raw_url(),request.header("Host").unwrap())
+                        debug!("{} {} {} requested file read",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap())
                         resolve_uri(request, req_path)
-                    } else if request.method() == "PUT"{
-                        info!("{} {} {} requested file edit",now, request.method(), request.raw_url(),request.header("Host").unwrap())
+                    } else if request.method() == "PUT" {
+                        info!("{} {} {} requested file edit",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap())
                         put_uri(request, req_path)
                     }else {
-                        warn!("{} {} {} unknown request method",now, request.method(), request.raw_url(),request.header("Host").unwrap())
+                        warn!("{} {} {} unknown request method",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap())
                         Response::empty_404()
                     }
                 }
@@ -122,16 +122,21 @@ fn put_uri(request: &Request,uri:String)->Response {
     let mut file = File::create(&path).unwrap();
     file.write_all(buffer.as_bytes()).unwrap();
 
-    println!("Wrote to path: {:?}", path);
+    info!("{} {} {} wrote to path {:?}",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap(), path);
 
     rouille::Response::empty_204()
 }
 
 fn resolve_uri(request: &Request,uri:String)->Response{
     let host = request.header("Host").unwrap();
-    println!("from host: {host}");
-    let path = get_path_from_host(host.to_string(),uri).unwrap();
-    println!("Requested path: {:?}", path);
+    let path = match get_path_from_host(host.to_string(),uri) {
+        Ok(p) => p,
+        Err(e) => {
+            warn!("{} {} {} error getting path {:?}",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap(), e);
+            return rouille::Response::empty_404()
+        }
+    };
+    info!("{} {} {} Requested path {:?}",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap(), path);
     let contents = match File::open(&path) {
         Ok(c) => c,
         Err(_) => {
