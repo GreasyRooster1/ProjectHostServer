@@ -64,17 +64,16 @@ async fn main() {
     let token = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjkwOTg1NzhjNDg4MWRjMDVlYmYxOWExNWJhMjJkOGZkMWFiMzRjOGEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vcWNvZGUtY2RmYzYiLCJhdWQiOiJxY29kZS1jZGZjNiIsImF1dGhfdGltZSI6MTc0MTU1NTM0NywidXNlcl9pZCI6ImpFTWgza2VtM2VNUVZsaHl2ODZsaGl2dDNTSDMiLCJzdWIiOiJqRU1oM2tlbTNlTVFWbGh5djg2bGhpdnQzU0gzIiwiaWF0IjoxNzQ1NjkwODU4LCJleHAiOjE3NDU2OTQ0NTgsImVtYWlsIjoiZ3JlYXN5cm9vc3RlcjFAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImdyZWFzeXJvb3N0ZXIxQGdtYWlsLmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6InBhc3N3b3JkIn19.FTkmJBpl8DvKyR4BRf3d7-sVzBfzrcRI6gflQlafIhPMfBf2If8DV3TzLfIeaoqLOkOhfh_qE4MaHa-RagFsywY9AJjBR0TTJ2hYLnTxOi2ShkKZfnsV7OIQy32aK3_ln2ihzHJan5pKyapNfwZGR7IS1RR8kMfrRGEvL-5-bonHB_0Z3QCA-el6spfXRQIpKY5kgNRt4biTRc6skAET1ZYm-91YT_GlgCqdTA2GA-c2rYPUUusANW-TXL1_o2FHEs6iNqai_STX15Q2Sqz0XlLlngTg-CgPGQPexBN1EDw_8FPfgoCJhkHdy2zSPFrkPysZiMlTsym7wUVKJDdbKQ";
 
     rouille::start_server(address, move |request| {
-        let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S%.6f");
         let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
-            info!("{} {} {} {}", now, req.method(), req.raw_url(),req.header("Host").unwrap());
+            info!("{} {} {} {}", request.remote_addr(), req.method(), req.raw_url(),req.header("Host").unwrap());
         };
         let log_err = |req: &Request, _elap: std::time::Duration| {
-            error!("{} Handler panicked: {} {}", now, req.method(), req.raw_url());
+            error!("{} Handler panicked: {} {}", request.remote_addr(), req.method(), req.raw_url());
         };
         rouille::log_custom(request, log_ok, log_err,  || {
             router!(request,
                 (GET) (/) => {
-                    debug!("{} {} {} redirecting to index.html ",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap())
+                    debug!("{} {} {} {} redirecting to index.html ",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap());
                     resolve_uri(request, "index.html".to_string())
                 },
 
@@ -86,13 +85,13 @@ async fn main() {
                     let req_path = request.url();
 
                     if request.method() == "GET" {
-                        debug!("{} {} {} requested file read",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap())
+                        debug!("{} {} {} {} requested file read",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap());
                         resolve_uri(request, req_path)
                     } else if request.method() == "PUT" {
-                        info!("{} {} {} requested file edit",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap())
+                        info!("{} {} {} {} requested file edit",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap());
                         put_uri(request, req_path)
                     }else {
-                        warn!("{} {} {} unknown request method",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap())
+                        warn!("{} {} {} {} unknown request method",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap());
                         Response::empty_404()
                     }
                 }
