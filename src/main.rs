@@ -126,7 +126,7 @@ fn put_uri(request: &Request,uri:String)->Response {
         file.write(&[byte.unwrap()]).expect("failed to write");
     }
 
-    info!("{} {} {} wrote to path {:?}",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap(), path);
+    info!("{} {} {} {} wrote to path {:?}",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap(), path);
 
     rouille::Response::empty_204()
 }
@@ -136,11 +136,11 @@ fn resolve_uri(request: &Request,uri:String)->Response{
     let path = match get_path_from_host(host.to_string(),uri) {
         Ok(p) => p,
         Err(e) => {
-            warn!("{} {} {} error getting path {:?}",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap(), e);
+            warn!("{} {} {} {} error getting path {:?}",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap(), e);
             return rouille::Response::empty_404()
         }
     };
-    info!("{} {} {} Requested path {:?}",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap(), path);
+    info!("{} {} {} {} Requested path {:?}",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap(), path);
     let contents = match File::open(&path) {
         Ok(c) => c,
         Err(_) => {
