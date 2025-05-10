@@ -25,7 +25,7 @@ pub const THREAD_POOL_SIZE:usize = 64;
 pub const NOT_FOUND_PAGE:&str = include_str!("../404.html");
 
 pub const HOST_IP:&str = "0.0.0.0";
-pub const HOST_PORT:&str = "1312";
+pub const HOST_PORT:&str = "80";
 pub const BLOCK_INDEXING:bool = true;
 
 pub const WHITELIST_EXTENSIONS: [&str;16] = ["png","jpg","wav","mp3","html","css","js","jsx","ts","tsx","jpeg","webp","txt","csv","json","http"];
@@ -90,6 +90,11 @@ async fn main() {
                     } else if request.method() == "PUT" {
                         info!("{} {} {} {} requested file edit",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap());
                         put_uri(request, req_path)
+                    } else if request.method() == "OPTIONS" {
+                        info!("{} {} {} {} requested CORS options",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap());
+                        Response::empty_204()
+                        .with_additional_header("Access-Control-Allow-Origin", "*")
+                        .with_additional_header("Access-Control-Allow-Methods", "GET, PUT, DELETE, OPTIONS")
                     }else {
                         warn!("{} {} {} {} unknown request method",request.remote_addr(), request.method(), request.raw_url(),request.header("Host").unwrap());
                         Response::empty_404()
