@@ -28,7 +28,7 @@ pub const HOST_IP:&str = "0.0.0.0";
 pub const HOST_PORT:&str = "80";
 pub const BLOCK_INDEXING:bool = true;
 
-pub const WHITELIST_EXTENSIONS: [&str;16] = ["png","jpg","wav","mp3","html","css","js","jsx","ts","tsx","jpeg","webp","txt","csv","json","http"];
+//pub const WHITELIST_EXTENSIONS: [&str;16] = ["png","jpg","wav","mp3","html","css","js","jsx","ts","tsx","jpeg","webp","txt","csv","json","http"];
 pub const BLACKLIST_HOSTS: [&str;1] = ["code"];
 
 #[derive(Debug, Clone)]
@@ -115,9 +115,9 @@ fn put_uri(request: &Request,uri:String)->Response {
     let pathObj = Path::new(&path);
     let extension = pathObj.extension().unwrap().to_str().unwrap();
 
-    if !WHITELIST_EXTENSIONS.contains(&extension){
-        return rouille::Response::text("forbidden extension").with_status_code(403);
-    }
+    // if !WHITELIST_EXTENSIONS.contains(&extension){
+    //     return rouille::Response::text("forbidden extension").with_status_code(403);
+    // }
 
     let bytes = request.data().unwrap().bytes();
     let _ = match fs::create_dir_all(pathObj.parent().unwrap()){
